@@ -126,13 +126,10 @@ class _DraggableScrollableSheetExampleState
                       alignment: Alignment.centerRight,
                       child: IconButton(
                         onPressed: () {
-                          setState(() {
-                            _songs[0]['status'] = !_songs[0]['status'];
-                          });
-                          // print("status: ${_songs[1]['status']}");
+                          setState(() {});
                         },
                         icon: Icon(
-                          _songs[0]['status'] ? Icons.play_arrow : Icons.pause,
+                          Icons.play_arrow,
                         ),
                       ),
                     ),
@@ -223,15 +220,9 @@ class _SongsState extends State<Songs> {
                 alignment: Alignment.centerRight,
                 child: IconButton(
                   onPressed: () {
-                    setState(() {
-                      widget.songs[widget.index]['status'] =
-                          !widget.songs[widget.index]['status'];
-                    });
-                    print("status: ${widget.songs[widget.index]['status']}");
+                    setState(() {});
                   },
-                  icon: Icon(widget.songs[widget.index]['status']
-                      ? Icons.play_arrow
-                      : Icons.pause),
+                  icon: Icon(Icons.pause),
                 ),
               ),
             ),

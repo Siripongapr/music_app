@@ -1,9 +1,10 @@
+import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:music_app/data.dart';
+import 'package:music_app/progress_bar_state.dart';
 import 'package:music_app/widget/draggable_sheet.dart';
-import 'package:music_app/widget/player.dart';
 
 void main() {
   runApp(const MyApp());
@@ -26,71 +27,32 @@ class MyApp extends StatelessWidget {
 }
 
 class Playlist extends StatefulWidget {
-  const Playlist({super.key});
+  const Playlist({Key? key}) : super(key: key);
 
   @override
   State<Playlist> createState() => _PlaylistState();
 }
 
 class _PlaylistState extends State<Playlist> {
-  final DraggableScrollableController sheetController =
-      DraggableScrollableController();
-  final player = AudioPlayer();
-  final playlist = ConcatenatingAudioSource(
-    useLazyPreparation: true,
-    shuffleOrder: DefaultShuffleOrder(),
-    children: [
-      AudioSource.uri(Uri.parse(
-          'https://archive.org/download/attack-on-titan-advance-trails/01.%20Nikagetsu-go%20no%20Kimi%20e.mp3')),
-      AudioSource.uri(Uri.parse(
-          'https://archive.org/download/attack-on-titan-advance-trails/02.%20Guren%20no%20Yumiya.mp3')),
-      AudioSource.uri(Uri.parse(
-          'https://archive.org/download/attack-on-titan-advance-trails/03.%2014-moji%20no%20Dengon.mp3')),
-      AudioSource.uri(Uri.parse(
-          'https://archive.org/download/attack-on-titan-advance-trails/04.%20Guren%20no%20Zahyou.mp3')),
-      AudioSource.uri(Uri.parse(
-          'https://archive.org/download/attack-on-titan-advance-trails/05.%20Saigo%20no%20Senka.mp3')),
-      AudioSource.uri(Uri.parse(
-          'https://archive.org/download/attack-on-titan-advance-trails/06.%20Kami%20no%20Miwaza.mp3')),
-      AudioSource.uri(Uri.parse(
-          'https://archive.org/download/attack-on-titan-advance-trails/07.%20Jiyuu%20no%20Tsubasa.mp3')),
-      AudioSource.uri(Uri.parse(
-          'https://archive.org/download/attack-on-titan-advance-trails/08.%20Souyoku%20no%20Hikari.mp3')),
-      AudioSource.uri(Uri.parse(
-          'https://archive.org/download/attack-on-titan-advance-trails/09.%20Jiyuu%20no%20Daishou.mp3')),
-      AudioSource.uri(Uri.parse(
-          'https://archive.org/download/attack-on-titan-advance-trails/10.%20Kanojo%20wa%20Tsumetai%20Hitsugi%20no%20Naka%20de.mp3')),
-      AudioSource.uri(Uri.parse(
-          'https://archive.org/download/attack-on-titan-advance-trails/11.%20Shinzou%20wo%20Sasageyo%21.mp3')),
-    ],
-  );
+  late final PageManager _pageManager;
+
   List<Map<String, dynamic>> songs = SongData().songs;
 
   @override
+  void initState() {
+    super.initState();
+    _pageManager = PageManager(songs);
+  }
+
+  @override
   void dispose() {
-    player.dispose();
+    _pageManager.dispose();
     super.dispose();
   }
 
   void _togglePlayPause(int index) async {
-    if (songs[index]['status'] == false) {
-      songs.forEach((song) {
-        song['status'] = false;
-      });
-      if (player.audioSource != playlist.children.indexed) {
-        await player.setAudioSource(playlist, initialIndex: index);
-      }
-      setState(() {
-        songs[index]['status'] = true;
-      });
-
-      player.play();
-    } else {
-      setState(() {
-        songs[index]['status'] = false;
-      });
-      player.pause();
-    }
+    _pageManager.togglePlayPause(index);
+    setState(() {});
   }
 
   @override
@@ -128,19 +90,57 @@ class _PlaylistState extends State<Playlist> {
                             subtitle: Text(songs[index]['artist']!),
                           ),
                         ),
+                        SizedBox(
+                          height: 100,
+                          width: 100,
+                          child: ValueListenableBuilder<ProgressBarState>(
+                            valueListenable:
+                                _pageManager.progressNotifier[index],
+                            builder: (_, value, __) {
+                              return ProgressBar(
+                                progress: value.current,
+                                buffered: value.buffered,
+                                total: value.total,
+                                onSeek: (duration) {
+                                  _pageManager.seek(index, duration);
+                                },
+                              );
+                            },
+                          ),
+                        ),
                         Expanded(
                           child: Align(
                             alignment: Alignment.centerRight,
-                            child: IconButton(
-                              onPressed: () {
-                                _togglePlayPause(index);
-                                setState(() {});
+                            child: ValueListenableBuilder<ButtonState>(
+                              valueListenable:
+                                  _pageManager.buttonNotifier[index],
+                              builder: (_, value, __) {
+                                switch (value) {
+                                  case ButtonState.loading:
+                                    return Container(
+                                      margin: const EdgeInsets.all(8.0),
+                                      width: 32.0,
+                                      height: 32.0,
+                                      child: const CircularProgressIndicator(),
+                                    );
+                                  case ButtonState.paused:
+                                    return IconButton(
+                                      icon: const Icon(Icons.play_arrow),
+                                      iconSize: 32.0,
+                                      onPressed: () {
+                                        _togglePlayPause(index);
+                                      },
+                                    );
+                                  case ButtonState.playing:
+                                    return IconButton(
+                                      icon: const Icon(Icons.pause),
+                                      iconSize: 32.0,
+                                      onPressed: () {
+                                        _togglePlayPause(index);
+                                      },
+                                    );
+                                }
                               },
-                              icon: Icon(
-                                songs[index]['status']
-                                    ? Icons.pause
-                                    : Icons.play_arrow,
-                              ),
                             ),
                           ),
                         ),
