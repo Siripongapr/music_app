@@ -155,7 +155,9 @@ class _PlaylistState extends State<Playlist> {
               );
             },
           ),
-          DraggableScrollableSheetExample()
+          DraggableScrollableSheetExample(
+            songs: songs,
+          )
         ],
       ),
       // bottomSheet: DraggableScrollableSheetExample()
