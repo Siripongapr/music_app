@@ -22,10 +22,13 @@ class _DraggableScrollableSheetExampleState
   late AnimationController _animationController;
   late Animation<double> _animation;
 
+  List<Map<String, dynamic>> _songs = [];
+
   @override
   void initState() {
     super.initState();
     _sheetPosition = _minSheetPosition;
+    _songs = List<Map<String, dynamic>>.from(widget.songs);
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -95,7 +98,6 @@ class _DraggableScrollableSheetExampleState
                     print(_sheetPosition);
                   });
                 },
-
                 onVerticalDragEnd: (DragEndDetails details) {
                   _snapSheetPosition();
                 },
@@ -104,18 +106,19 @@ class _DraggableScrollableSheetExampleState
               Row(
                 children: [
                   SizedBox(
-                      width: 100,
-                      height: 100,
-                      child: Image.network(
-                        widget.songs[1]['image']!,
-                        fit: BoxFit.fill,
-                      )),
+                    width: 100,
+                    height: 100,
+                    child: Image.network(
+                      _songs[0]['image']!,
+                      fit: BoxFit.fill,
+                    ),
+                  ),
                   SizedBox(
                     width: 100,
                     height: 100,
                     child: ListTile(
-                      title: Text(widget.songs[1]['song']!),
-                      subtitle: Text(widget.songs[1]['artist']!),
+                      title: Text(_songs[0]['song']!),
+                      subtitle: Text(_songs[0]['artist']!),
                     ),
                   ),
                   Expanded(
@@ -124,69 +127,36 @@ class _DraggableScrollableSheetExampleState
                       child: IconButton(
                         onPressed: () {
                           setState(() {
-                            widget.songs[1]['status'] =
-                                !widget.songs[1]['status'];
+                            _songs[0]['status'] = !_songs[0]['status'];
                           });
-                          print("status: ${widget.songs[1]['status']}");
+                          // print("status: ${_songs[1]['status']}");
                         },
-                        icon: Icon(widget.songs[1]['status']
-                            ? Icons.play_arrow
-                            : Icons.pause),
+                        icon: Icon(
+                          _songs[0]['status'] ? Icons.play_arrow : Icons.pause,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
               Expanded(
-                child: ListView.builder(
-                  itemCount: widget.songs.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.max,
-                            children: [
-                              SizedBox(
-                                  width: 100,
-                                  height: 100,
-                                  child: Image.network(
-                                    widget.songs[index]['image']!,
-                                    fit: BoxFit.fill,
-                                  )),
-                              SizedBox(
-                                width: 100,
-                                height: 100,
-                                child: ListTile(
-                                  title: Text(widget.songs[index]['song']!),
-                                  subtitle:
-                                      Text(widget.songs[index]['artist']!),
-                                ),
-                              ),
-                              Expanded(
-                                child: Align(
-                                  alignment: Alignment.centerRight,
-                                  child: IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        widget.songs[index]['status'] =
-                                            !widget.songs[index]['status'];
-                                      });
-                                      print(
-                                          "status: ${widget.songs[index]['status']}");
-                                    },
-                                    icon: Icon(widget.songs[index]['status']
-                                        ? Icons.play_arrow
-                                        : Icons.pause),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
+                child: ReorderableListView(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  header: Container(
+                    height: 0,
+                  ),
+                  children: _songs.map((song) {
+                    return _buildListItem(song);
+                  }).toList(),
+                  onReorder: (oldIndex, newIndex) {
+                    setState(() {
+                      if (newIndex > oldIndex) {
+                        newIndex -= 1;
+                      }
+                      final Map<String, dynamic> item =
+                          _songs.removeAt(oldIndex);
+                      _songs.insert(newIndex, item);
+                    });
                   },
                 ),
               ),
@@ -194,6 +164,80 @@ class _DraggableScrollableSheetExampleState
           ),
         );
       },
+    );
+  }
+
+  Widget _buildListItem(Map<String, dynamic> song) {
+    return ListTile(
+      key: Key(song['song']), // Required for ReorderableListView
+      leading: SizedBox(
+        width: 100,
+        height: 100,
+        child: Image.network(
+          song['image']!,
+          fit: BoxFit.fill,
+        ),
+      ),
+      title: Text(song['song']!),
+      subtitle: Text(song['artist']!),
+      trailing: Icon(
+        Icons.reorder,
+      ),
+    );
+  }
+}
+
+class Songs extends StatefulWidget {
+  const Songs({super.key, required this.songs, required this.index});
+  final List<Map<String, dynamic>> songs;
+  final int index;
+  @override
+  State<Songs> createState() => _SongsState();
+}
+
+class _SongsState extends State<Songs> {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            SizedBox(
+                width: 100,
+                height: 100,
+                child: Image.network(
+                  widget.songs[widget.index]['image']!,
+                  fit: BoxFit.fill,
+                )),
+            SizedBox(
+              width: 100,
+              height: 100,
+              child: ListTile(
+                title: Text(widget.songs[widget.index]['song']!),
+                subtitle: Text(widget.songs[widget.index]['artist']!),
+              ),
+            ),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      widget.songs[widget.index]['status'] =
+                          !widget.songs[widget.index]['status'];
+                    });
+                    print("status: ${widget.songs[widget.index]['status']}");
+                  },
+                  icon: Icon(widget.songs[widget.index]['status']
+                      ? Icons.play_arrow
+                      : Icons.pause),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
