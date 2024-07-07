@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class DraggableScrollableSheetExample extends StatefulWidget {
-  const DraggableScrollableSheetExample({super.key});
-
+  const DraggableScrollableSheetExample({super.key, required this.songs});
+  final List<Map<String, dynamic>> songs;
   @override
   State<DraggableScrollableSheetExample> createState() =>
       _DraggableScrollableSheetExampleState();
@@ -12,11 +12,11 @@ class DraggableScrollableSheetExample extends StatefulWidget {
 class _DraggableScrollableSheetExampleState
     extends State<DraggableScrollableSheetExample>
     with SingleTickerProviderStateMixin {
-  double _sheetPosition = 0.1;
+  double _sheetPosition = 0;
   final double _dragSensitivity = 600;
 
   // Define the minimum and maximum values
-  final double _minSheetPosition = 0.1;
+  final double _minSheetPosition = 0.16;
   final double _maxSheetPosition = 1.0;
 
   late AnimationController _animationController;
@@ -25,6 +25,7 @@ class _DraggableScrollableSheetExampleState
   @override
   void initState() {
     super.initState();
+    _sheetPosition = _minSheetPosition;
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -42,10 +43,22 @@ class _DraggableScrollableSheetExampleState
   }
 
   void _snapSheetPosition() {
-    final targetPosition = _sheetPosition < 0.3
-        ? _minSheetPosition
-        : (_sheetPosition < 0.7 ? _maxSheetPosition : _minSheetPosition);
+    double targetPosition;
 
+    // Check the _sheetPosition value and determine the target position
+    if (_sheetPosition > 0.2) {
+      if (_sheetPosition <= 0.8) {
+        targetPosition = _minSheetPosition;
+      } else {
+        targetPosition = _maxSheetPosition;
+      }
+    } else {
+      targetPosition =
+          _minSheetPosition; // Fallback to _minSheetPosition if conditions are not met
+      print('Condition met: _sheetPosition <= 0.8');
+    }
+
+    print('Sheet Position: $_sheetPosition, Snap to: $targetPosition');
     _animation = Tween<double>(
       begin: _sheetPosition,
       end: targetPosition,
@@ -62,40 +75,116 @@ class _DraggableScrollableSheetExampleState
 
     return DraggableScrollableSheet(
       initialChildSize: _sheetPosition,
-      minChildSize: 0.1,
+      minChildSize: _minSheetPosition,
       maxChildSize: _maxSheetPosition,
       builder: (BuildContext context, ScrollController scrollController) {
         return ColoredBox(
-          color: colorScheme.primary,
+          color: Colors.white,
           child: Column(
             children: <Widget>[
               Grabber(
                 onVerticalDragUpdate: (DragUpdateDetails details) {
                   setState(() {
                     _sheetPosition -= details.delta.dy / _dragSensitivity;
-                    // print(_sheetPosition);
                     if (_sheetPosition < _minSheetPosition) {
                       _sheetPosition = _minSheetPosition;
                     }
                     if (_sheetPosition > _maxSheetPosition) {
                       _sheetPosition = _maxSheetPosition;
                     }
+                    print(_sheetPosition);
                   });
                 },
+
                 onVerticalDragEnd: (DragEndDetails details) {
                   _snapSheetPosition();
                 },
                 isOnDesktopAndWeb: true, // Make the grabber always visible
               ),
-              Flexible(
+              Row(
+                children: [
+                  SizedBox(
+                      width: 100,
+                      height: 100,
+                      child: Image.network(
+                        widget.songs[1]['image']!,
+                        fit: BoxFit.fill,
+                      )),
+                  SizedBox(
+                    width: 100,
+                    height: 100,
+                    child: ListTile(
+                      title: Text(widget.songs[1]['song']!),
+                      subtitle: Text(widget.songs[1]['artist']!),
+                    ),
+                  ),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: IconButton(
+                        onPressed: () {
+                          setState(() {
+                            widget.songs[1]['status'] =
+                                !widget.songs[1]['status'];
+                          });
+                          print("status: ${widget.songs[1]['status']}");
+                        },
+                        icon: Icon(widget.songs[1]['status']
+                            ? Icons.play_arrow
+                            : Icons.pause),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Expanded(
                 child: ListView.builder(
-                  controller: scrollController,
-                  itemCount: 25,
-                  itemBuilder: (BuildContext context, int index) {
-                    return ListTile(
-                      title: Text(
-                        'Item $index',
-                        style: TextStyle(color: colorScheme.surface),
+                  itemCount: widget.songs.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.max,
+                            children: [
+                              SizedBox(
+                                  width: 100,
+                                  height: 100,
+                                  child: Image.network(
+                                    widget.songs[index]['image']!,
+                                    fit: BoxFit.fill,
+                                  )),
+                              SizedBox(
+                                width: 100,
+                                height: 100,
+                                child: ListTile(
+                                  title: Text(widget.songs[index]['song']!),
+                                  subtitle:
+                                      Text(widget.songs[index]['artist']!),
+                                ),
+                              ),
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        widget.songs[index]['status'] =
+                                            !widget.songs[index]['status'];
+                                      });
+                                      print(
+                                          "status: ${widget.songs[index]['status']}");
+                                    },
+                                    icon: Icon(widget.songs[index]['status']
+                                        ? Icons.play_arrow
+                                        : Icons.pause),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     );
                   },
