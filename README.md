@@ -1,17 +1,21 @@
 # music_app
 
-A new Flutter project.
+This app is for my personal practice,and research how to build the music app.
 
 ## Getting Started
+This app is build for andriod only(for now).
+please run "flutter pub get" before start the app.
 
-This project is a starting point for a Flutter application.
+Current features.
+- play/pause the music.
+- can drag for change the music position.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Up next features. (From most important to least)
+- next/previous button for change the music.
+- can change the playlist.
+- upload the music.
+- cache the music for better performance.
+- optimize the app for better performance. (fix music lagging , etc.)
+- create / login users.
+- and more.
 # music_app
