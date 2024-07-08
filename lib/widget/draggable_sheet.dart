@@ -1,24 +1,28 @@
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
-
 import 'package:flutter/material.dart';
-import 'package:music_app/data.dart';
+
+import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:music_app/progress_bar_state.dart';
 
 class DraggableScrollableSheetExample extends StatefulWidget {
-  const DraggableScrollableSheetExample({super.key, required this.songs});
+  const DraggableScrollableSheetExample({
+    Key? key,
+    required this.songs,
+    required this.onReorder,
+  }) : super(key: key);
+
   final List<Map<String, dynamic>> songs;
+  final void Function(int oldIndex, int newIndex) onReorder;
+
   @override
-  State<DraggableScrollableSheetExample> createState() =>
+  _DraggableScrollableSheetExampleState createState() =>
       _DraggableScrollableSheetExampleState();
 }
 
 class _DraggableScrollableSheetExampleState
     extends State<DraggableScrollableSheetExample>
     with SingleTickerProviderStateMixin {
-  double _sheetPosition = 0;
+  double _sheetPosition = 0.17; // Initial position
   final double _dragSensitivity = 600;
-
-  // Define the minimum and maximum values
   final double _minSheetPosition = 0.17;
   final double _maxSheetPosition = 1.0;
 
@@ -27,12 +31,12 @@ class _DraggableScrollableSheetExampleState
 
   late final PageManager _pageManager;
   late List<Map<String, dynamic>> _songs;
+
   @override
   void initState() {
     super.initState();
-    _songs = widget.songs;
-    _sheetPosition = _minSheetPosition;
-    _pageManager = PageManager(_songs!);
+    _songs = List.from(widget.songs); // Copy the initial songs list
+    _pageManager = PageManager(_songs);
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -46,7 +50,6 @@ class _DraggableScrollableSheetExampleState
   @override
   void dispose() {
     _pageManager.dispose();
-
     _animationController.dispose();
     super.dispose();
   }
@@ -54,7 +57,6 @@ class _DraggableScrollableSheetExampleState
   void _snapSheetPosition() {
     double targetPosition;
 
-    // Check the _sheetPosition value and determine the target position
     if (_sheetPosition > 0.2) {
       if (_sheetPosition <= 0.8) {
         targetPosition = _minSheetPosition;
@@ -62,12 +64,9 @@ class _DraggableScrollableSheetExampleState
         targetPosition = _maxSheetPosition;
       }
     } else {
-      targetPosition =
-          _minSheetPosition; // Fallback to _minSheetPosition if conditions are not met
-      print('Condition met: _sheetPosition <= 0.8');
+      targetPosition = _minSheetPosition;
     }
 
-    print('Sheet Position: $_sheetPosition, Snap to: $targetPosition');
     _animation = Tween<double>(
       begin: _sheetPosition,
       end: targetPosition,
@@ -104,7 +103,6 @@ class _DraggableScrollableSheetExampleState
                     if (_sheetPosition > _maxSheetPosition) {
                       _sheetPosition = _maxSheetPosition;
                     }
-                    print(_sheetPosition);
                   });
                 },
                 onVerticalDragEnd: (DragEndDetails details) {
@@ -128,7 +126,7 @@ class _DraggableScrollableSheetExampleState
                       );
                     },
                   ),
-                ), // Make the grabber always visible
+                ),
               ),
               Row(
                 children: [
@@ -195,9 +193,18 @@ class _DraggableScrollableSheetExampleState
                     int index = _songs.indexOf(song);
                     return _buildListItem(song, index);
                   }).toList(),
-                  onReorder: (oldIndex, newIndex) async {
-                    setState(() {});
-                    await _pageManager.reorderSongs(oldIndex, newIndex);
+                  onReorder: (oldIndex, newIndex) {
+                    setState(() {
+                      if (newIndex > oldIndex) {
+                        newIndex -= 1;
+                      }
+                      final Map<String, dynamic> song =
+                          _songs.removeAt(oldIndex);
+                      _songs.insert(newIndex, song);
+                      widget.onReorder(oldIndex, newIndex);
+                      // _pageManager.reorderSongs(oldIndex,
+                      //     newIndex); // Update PageManager with new order
+                    });
                   },
                 ),
               ),
@@ -210,7 +217,7 @@ class _DraggableScrollableSheetExampleState
 
   Widget _buildListItem(Map<String, dynamic> song, int index) {
     return ListTile(
-      key: Key(song['song']), // Required for ReorderableListView
+      key: Key(song['song']!), // Required for ReorderableListView
       leading: SizedBox(
         width: 100,
         height: 100,
@@ -227,44 +234,45 @@ class _DraggableScrollableSheetExampleState
 }
 
 class Grabber extends StatelessWidget {
-  const Grabber(
-      {super.key,
-      required this.onVerticalDragUpdate,
-      required this.isOnDesktopAndWeb,
-      this.onVerticalDragEnd,
-      this.child});
+  const Grabber({
+    Key? key,
+    required this.onVerticalDragUpdate,
+    required this.isOnDesktopAndWeb,
+    required this.child,
+    this.onVerticalDragEnd,
+  }) : super(key: key);
 
   final ValueChanged<DragUpdateDetails> onVerticalDragUpdate;
   final GestureDragEndCallback? onVerticalDragEnd;
   final bool isOnDesktopAndWeb;
-  final Widget? child;
+  final Widget child;
+
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-
     return GestureDetector(
       onVerticalDragUpdate: onVerticalDragUpdate,
       onVerticalDragEnd: onVerticalDragEnd,
       child: Container(
-          width: double.infinity,
-          color: Colors.white,
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.topCenter,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 8.0),
-                  width: 32.0,
-                  height: 4.0,
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
+        width: double.infinity,
+        color: Colors.white,
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.topCenter,
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 8.0),
+                width: 32.0,
+                height: 4.0,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8.0),
                 ),
               ),
-              child!,
-            ],
-          )),
+            ),
+            child,
+          ],
+        ),
+      ),
     );
   }
 }

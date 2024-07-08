@@ -52,6 +52,11 @@ class _PlaylistState extends State<Playlist> {
     setState(() {});
   }
 
+  void _handleReorder(int oldIndex, int newIndex) {
+    _pageManager.reorderSongs(oldIndex, newIndex);
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,6 +126,7 @@ class _PlaylistState extends State<Playlist> {
           ),
           DraggableScrollableSheetExample(
             songs: songs,
+            onReorder: _handleReorder,
           ),
         ],
       ),
