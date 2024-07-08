@@ -1,11 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
-import 'package:music_app/data.dart';
-import 'package:music_app/progress_bar_state.dart';
-import 'package:music_app/widget/draggable_sheet.dart';
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 
 class PageManager {
   late AudioPlayer _audioPlayer;
@@ -140,7 +134,6 @@ class PageManager {
     _audioPlayer.dispose();
   }
 
-  // Method to handle reordering of songs
   Future<void> reorderSongs(int oldIndex, int newIndex) async {
     if (newIndex > oldIndex) {
       newIndex -= 1;
@@ -148,9 +141,23 @@ class PageManager {
     final song = _songs.removeAt(oldIndex);
     _songs.insert(newIndex, song);
 
+    // Check if the current index needs to be updated
+    int? currentIndex = _audioPlayer.currentIndex;
+    if (currentIndex != null) {
+      if (oldIndex == currentIndex) {
+        currentIndex = newIndex;
+      } else if (oldIndex < currentIndex && newIndex >= currentIndex) {
+        currentIndex -= 1;
+      } else if (oldIndex > currentIndex && newIndex <= currentIndex) {
+        currentIndex += 1;
+      }
+    }
+
     _updatePlaylist();
 
-    await setAudioSource(_playlist);
+    // Update audio source without reloading
+    await _audioPlayer.setAudioSource(_playlist,
+        initialIndex: currentIndex ?? 0);
   }
 }
 

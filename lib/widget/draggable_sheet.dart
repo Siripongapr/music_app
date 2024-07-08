@@ -1,5 +1,5 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
-import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:music_app/data.dart';
 import 'package:music_app/progress_bar_state.dart';
@@ -19,21 +19,20 @@ class _DraggableScrollableSheetExampleState
   final double _dragSensitivity = 600;
 
   // Define the minimum and maximum values
-  final double _minSheetPosition = 0.16;
+  final double _minSheetPosition = 0.17;
   final double _maxSheetPosition = 1.0;
 
   late AnimationController _animationController;
   late Animation<double> _animation;
 
-  List<Map<String, dynamic>> _songs = SongData().songs;
   late final PageManager _pageManager;
-
+  late List<Map<String, dynamic>> _songs;
   @override
   void initState() {
     super.initState();
+    _songs = widget.songs;
     _sheetPosition = _minSheetPosition;
-    _pageManager = PageManager(_songs);
-
+    _pageManager = PageManager(_songs!);
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -111,7 +110,25 @@ class _DraggableScrollableSheetExampleState
                 onVerticalDragEnd: (DragEndDetails details) {
                   _snapSheetPosition();
                 },
-                isOnDesktopAndWeb: true, // Make the grabber always visible
+                isOnDesktopAndWeb: true,
+                child: Padding(
+                  padding: const EdgeInsets.all(1.0),
+                  child: ValueListenableBuilder<ProgressBarState>(
+                    valueListenable: _pageManager.progressNotifier[0],
+                    builder: (_, value, __) {
+                      return ProgressBar(
+                        thumbRadius: 0,
+                        timeLabelLocation: TimeLabelLocation.none,
+                        progress: value.current,
+                        buffered: value.buffered,
+                        total: value.total,
+                        onSeek: (duration) {
+                          _pageManager.seek(0, duration);
+                        },
+                      );
+                    },
+                  ),
+                ), // Make the grabber always visible
               ),
               Row(
                 children: [
@@ -132,14 +149,39 @@ class _DraggableScrollableSheetExampleState
                     ),
                   ),
                   Expanded(
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: IconButton(
-                        onPressed: () {
-                          setState(() {});
-                        },
-                        icon: Icon(
-                          Icons.play_arrow,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 20.0),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: ValueListenableBuilder<ButtonState>(
+                          valueListenable: _pageManager.buttonNotifier[0],
+                          builder: (_, value, __) {
+                            switch (value) {
+                              case ButtonState.loading:
+                                return Container(
+                                  margin: const EdgeInsets.all(8.0),
+                                  width: 32.0,
+                                  height: 32.0,
+                                  child: const CircularProgressIndicator(),
+                                );
+                              case ButtonState.paused:
+                                return IconButton(
+                                  icon: const Icon(Icons.play_arrow),
+                                  iconSize: 32.0,
+                                  onPressed: () {
+                                    _togglePlayPause(0);
+                                  },
+                                );
+                              case ButtonState.playing:
+                                return IconButton(
+                                  icon: const Icon(Icons.pause),
+                                  iconSize: 32.0,
+                                  onPressed: () {
+                                    _togglePlayPause(0);
+                                  },
+                                );
+                            }
+                          },
                         ),
                       ),
                     ),
@@ -154,16 +196,8 @@ class _DraggableScrollableSheetExampleState
                     return _buildListItem(song, index);
                   }).toList(),
                   onReorder: (oldIndex, newIndex) async {
-                    setState(() {
-                      if (newIndex > oldIndex) {
-                        newIndex -= 1;
-                      }
-                      final Map<String, dynamic> item =
-                          _songs.removeAt(oldIndex);
-                      _songs.insert(newIndex, item);
-                    });
-                    await _pageManager.reorderSongs(oldIndex, newIndex);
                     setState(() {});
+                    await _pageManager.reorderSongs(oldIndex, newIndex);
                   },
                 ),
               ),
@@ -187,125 +221,23 @@ class _DraggableScrollableSheetExampleState
       ),
       title: Text(song['song']!),
       subtitle: Text(song['artist']!),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 100,
-            height: 100,
-            child: ValueListenableBuilder<ProgressBarState>(
-              valueListenable: _pageManager.progressNotifier[index],
-              builder: (_, value, __) {
-                return ProgressBar(
-                  progress: value.current,
-                  buffered: value.buffered,
-                  total: value.total,
-                  onSeek: (duration) {
-                    _pageManager.seek(index, duration);
-                  },
-                );
-              },
-            ),
-          ),
-          ValueListenableBuilder<ButtonState>(
-            valueListenable: _pageManager.buttonNotifier[index],
-            builder: (_, value, __) {
-              switch (value) {
-                case ButtonState.loading:
-                  return Container(
-                    margin: const EdgeInsets.all(8.0),
-                    width: 32.0,
-                    height: 32.0,
-                    child: const CircularProgressIndicator(),
-                  );
-                case ButtonState.paused:
-                  return IconButton(
-                    icon: const Icon(Icons.play_arrow),
-                    iconSize: 32.0,
-                    onPressed: () {
-                      _togglePlayPause(index);
-                    },
-                  );
-                case ButtonState.playing:
-                  return IconButton(
-                    icon: const Icon(Icons.pause),
-                    iconSize: 32.0,
-                    onPressed: () {
-                      _togglePlayPause(index);
-                    },
-                  );
-              }
-            },
-          ),
-        ],
-      ),
+      trailing: Icon(Icons.reorder),
     );
   }
 }
 
-class Songs extends StatefulWidget {
-  const Songs({super.key, required this.songs, required this.index});
-  final List<Map<String, dynamic>> songs;
-  final int index;
-  @override
-  State<Songs> createState() => _SongsState();
-}
-
-class _SongsState extends State<Songs> {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            SizedBox(
-                width: 100,
-                height: 100,
-                child: Image.network(
-                  widget.songs[widget.index]['image']!,
-                  fit: BoxFit.fill,
-                )),
-            SizedBox(
-              width: 100,
-              height: 100,
-              child: ListTile(
-                title: Text(widget.songs[widget.index]['song']!),
-                subtitle: Text(widget.songs[widget.index]['artist']!),
-              ),
-            ),
-            Expanded(
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  onPressed: () {
-                    setState(() {});
-                  },
-                  icon: Icon(Icons.pause),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-/// A draggable widget that accepts vertical drag gestures
-/// and this is visible on all platforms.
 class Grabber extends StatelessWidget {
-  const Grabber({
-    super.key,
-    required this.onVerticalDragUpdate,
-    required this.isOnDesktopAndWeb,
-    this.onVerticalDragEnd,
-  });
+  const Grabber(
+      {super.key,
+      required this.onVerticalDragUpdate,
+      required this.isOnDesktopAndWeb,
+      this.onVerticalDragEnd,
+      this.child});
 
   final ValueChanged<DragUpdateDetails> onVerticalDragUpdate;
   final GestureDragEndCallback? onVerticalDragEnd;
   final bool isOnDesktopAndWeb;
-
+  final Widget? child;
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
@@ -314,21 +246,25 @@ class Grabber extends StatelessWidget {
       onVerticalDragUpdate: onVerticalDragUpdate,
       onVerticalDragEnd: onVerticalDragEnd,
       child: Container(
-        width: double.infinity,
-        color: Colors.white,
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 8.0),
-            width: 32.0,
-            height: 4.0,
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-          ),
-        ),
-      ),
+          width: double.infinity,
+          color: Colors.white,
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 8.0),
+                  width: 32.0,
+                  height: 4.0,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
+              ),
+              child!,
+            ],
+          )),
     );
   }
 }
