@@ -1,5 +1,8 @@
+import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:music_app/data.dart';
+import 'package:music_app/progress_bar_state.dart';
 
 class DraggableScrollableSheetExample extends StatefulWidget {
   const DraggableScrollableSheetExample({super.key, required this.songs});
@@ -22,13 +25,15 @@ class _DraggableScrollableSheetExampleState
   late AnimationController _animationController;
   late Animation<double> _animation;
 
-  List<Map<String, dynamic>> _songs = [];
+  List<Map<String, dynamic>> _songs = SongData().songs;
+  late final PageManager _pageManager;
 
   @override
   void initState() {
     super.initState();
     _sheetPosition = _minSheetPosition;
-    _songs = List<Map<String, dynamic>>.from(widget.songs);
+    _pageManager = PageManager(_songs);
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -41,6 +46,8 @@ class _DraggableScrollableSheetExampleState
 
   @override
   void dispose() {
+    _pageManager.dispose();
+
     _animationController.dispose();
     super.dispose();
   }
@@ -72,10 +79,13 @@ class _DraggableScrollableSheetExampleState
     _animationController.forward(from: 0);
   }
 
+  void _togglePlayPause(int index) async {
+    _pageManager.togglePlayPause(index);
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-
     return DraggableScrollableSheet(
       initialChildSize: _sheetPosition,
       minChildSize: _minSheetPosition,
@@ -139,13 +149,11 @@ class _DraggableScrollableSheetExampleState
               Expanded(
                 child: ReorderableListView(
                   padding: EdgeInsets.symmetric(vertical: 8.0),
-                  header: Container(
-                    height: 0,
-                  ),
                   children: _songs.map((song) {
-                    return _buildListItem(song);
+                    int index = _songs.indexOf(song);
+                    return _buildListItem(song, index);
                   }).toList(),
-                  onReorder: (oldIndex, newIndex) {
+                  onReorder: (oldIndex, newIndex) async {
                     setState(() {
                       if (newIndex > oldIndex) {
                         newIndex -= 1;
@@ -154,6 +162,8 @@ class _DraggableScrollableSheetExampleState
                           _songs.removeAt(oldIndex);
                       _songs.insert(newIndex, item);
                     });
+                    await _pageManager.reorderSongs(oldIndex, newIndex);
+                    setState(() {});
                   },
                 ),
               ),
@@ -164,7 +174,7 @@ class _DraggableScrollableSheetExampleState
     );
   }
 
-  Widget _buildListItem(Map<String, dynamic> song) {
+  Widget _buildListItem(Map<String, dynamic> song, int index) {
     return ListTile(
       key: Key(song['song']), // Required for ReorderableListView
       leading: SizedBox(
@@ -177,8 +187,57 @@ class _DraggableScrollableSheetExampleState
       ),
       title: Text(song['song']!),
       subtitle: Text(song['artist']!),
-      trailing: Icon(
-        Icons.reorder,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 100,
+            height: 100,
+            child: ValueListenableBuilder<ProgressBarState>(
+              valueListenable: _pageManager.progressNotifier[index],
+              builder: (_, value, __) {
+                return ProgressBar(
+                  progress: value.current,
+                  buffered: value.buffered,
+                  total: value.total,
+                  onSeek: (duration) {
+                    _pageManager.seek(index, duration);
+                  },
+                );
+              },
+            ),
+          ),
+          ValueListenableBuilder<ButtonState>(
+            valueListenable: _pageManager.buttonNotifier[index],
+            builder: (_, value, __) {
+              switch (value) {
+                case ButtonState.loading:
+                  return Container(
+                    margin: const EdgeInsets.all(8.0),
+                    width: 32.0,
+                    height: 32.0,
+                    child: const CircularProgressIndicator(),
+                  );
+                case ButtonState.paused:
+                  return IconButton(
+                    icon: const Icon(Icons.play_arrow),
+                    iconSize: 32.0,
+                    onPressed: () {
+                      _togglePlayPause(index);
+                    },
+                  );
+                case ButtonState.playing:
+                  return IconButton(
+                    icon: const Icon(Icons.pause),
+                    iconSize: 32.0,
+                    onPressed: () {
+                      _togglePlayPause(index);
+                    },
+                  );
+              }
+            },
+          ),
+        ],
       ),
     );
   }

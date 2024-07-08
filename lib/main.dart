@@ -34,9 +34,8 @@ class Playlist extends StatefulWidget {
 }
 
 class _PlaylistState extends State<Playlist> {
-  late final PageManager _pageManager;
-
   List<Map<String, dynamic>> songs = SongData().songs;
+  late final PageManager _pageManager;
 
   @override
   void initState() {

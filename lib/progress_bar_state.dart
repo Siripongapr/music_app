@@ -21,34 +21,7 @@ class PageManager {
 
   void _init() {
     _audioPlayer = AudioPlayer();
-    _playlist = ConcatenatingAudioSource(
-      useLazyPreparation: true,
-      shuffleOrder: DefaultShuffleOrder(),
-      children: [
-        AudioSource.uri(Uri.parse(
-            'https://archive.org/download/attack-on-titan-advance-trails/01.%20Nikagetsu-go%20no%20Kimi%20e.mp3')),
-        AudioSource.uri(Uri.parse(
-            'https://archive.org/download/attack-on-titan-advance-trails/02.%20Guren%20no%20Yumiya.mp3')),
-        AudioSource.uri(Uri.parse(
-            'https://archive.org/download/attack-on-titan-advance-trails/03.%2014-moji%20no%20Dengon.mp3')),
-        AudioSource.uri(Uri.parse(
-            'https://archive.org/download/attack-on-titan-advance-trails/04.%20Guren%20no%20Zahyou.mp3')),
-        AudioSource.uri(Uri.parse(
-            'https://archive.org/download/attack-on-titan-advance-trails/05.%20Saigo%20no%20Senka.mp3')),
-        AudioSource.uri(Uri.parse(
-            'https://archive.org/download/attack-on-titan-advance-trails/06.%20Kami%20no%20Miwaza.mp3')),
-        AudioSource.uri(Uri.parse(
-            'https://archive.org/download/attack-on-titan-advance-trails/07.%20Jiyuu%20no%20Tsubasa.mp3')),
-        AudioSource.uri(Uri.parse(
-            'https://archive.org/download/attack-on-titan-advance-trails/08.%20Souyoku%20no%20Hikari.mp3')),
-        AudioSource.uri(Uri.parse(
-            'https://archive.org/download/attack-on-titan-advance-trails/09.%20Jiyuu%20no%20Daishou.mp3')),
-        AudioSource.uri(Uri.parse(
-            'https://archive.org/download/attack-on-titan-advance-trails/10.%20Kanojo%20wa%20Tsumetai%20Hitsugi%20no%20Naka%20de.mp3')),
-        AudioSource.uri(Uri.parse(
-            'https://archive.org/download/attack-on-titan-advance-trails/11.%20Shinzou%20wo%20Sasageyo%21.mp3')),
-      ],
-    );
+    _updatePlaylist();
 
     // Initialize progress and button notifiers for each song
     progressNotifier = List.generate(
@@ -117,6 +90,16 @@ class PageManager {
     });
   }
 
+  void _updatePlaylist() {
+    _playlist = ConcatenatingAudioSource(
+      useLazyPreparation: true,
+      shuffleOrder: DefaultShuffleOrder(),
+      children: _songs
+          .map((song) => AudioSource.uri(Uri.parse(song['url'])))
+          .toList(),
+    );
+  }
+
   Future<void> setAudioSource(ConcatenatingAudioSource source,
       {int initialIndex = 0}) async {
     try {
@@ -135,7 +118,6 @@ class PageManager {
         }
       }
       await setAudioSource(_playlist, initialIndex: index);
-
       play();
     } else {
       pause();
@@ -150,16 +132,25 @@ class PageManager {
     _audioPlayer.pause();
   }
 
-  void pauseSong(int index) {
-    _audioPlayer.pause();
-  }
-
   void seek(int index, Duration position) {
     _audioPlayer.seek(position);
   }
 
   void dispose() {
     _audioPlayer.dispose();
+  }
+
+  // Method to handle reordering of songs
+  Future<void> reorderSongs(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    final song = _songs.removeAt(oldIndex);
+    _songs.insert(newIndex, song);
+
+    _updatePlaylist();
+
+    await setAudioSource(_playlist);
   }
 }
 
