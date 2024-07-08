@@ -66,30 +66,49 @@ class _PlaylistState extends State<Playlist> {
       ),
       body: Stack(
         children: [
-          Row(
-            children: [
-              SizedBox(
-                width: 100,
-                height: 100,
-                child: Image.network(
-                  songs[0]['image']!,
-                  fit: BoxFit.fill,
+          Padding(
+            padding: const EdgeInsets.only(top: 100.0),
+            child: Column(
+              children: [
+                SizedBox(
+                  width: 300,
+                  height: 300,
+                  child: Image.network(
+                    songs[0]['image']!,
+                    fit: BoxFit.fill,
+                  ),
                 ),
-              ),
-              SizedBox(
-                width: 100,
-                height: 100,
-                child: ListTile(
-                  title: Text(songs[0]['song']!),
-                  subtitle: Text(songs[0]['artist']!),
+                SizedBox(
+                  height: 20,
                 ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 20.0),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: ValueListenableBuilder<ButtonState>(
+                Text(songs[0]['song']!),
+                Text(songs[0]['artist']!),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 20),
+                  child: ValueListenableBuilder<ProgressBarState>(
+                    valueListenable: _pageManager.progressNotifier[0],
+                    builder: (_, value, __) {
+                      return ProgressBar(
+                        progress: value.current,
+                        buffered: value.buffered,
+                        total: value.total,
+                        onSeek: (duration) {
+                          _pageManager.seek(0, duration);
+                        },
+                      );
+                    },
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                        onPressed: () {
+                          // _pageManager.previous();
+                        },
+                        icon: const Icon(Icons.skip_previous)),
+                    ValueListenableBuilder<ButtonState>(
                       valueListenable: _pageManager.buttonNotifier[0],
                       builder: (_, value, __) {
                         switch (value) {
@@ -119,14 +138,20 @@ class _PlaylistState extends State<Playlist> {
                         }
                       },
                     ),
-                  ),
+                    IconButton(
+                        onPressed: () {
+                          // _pageManager.next();
+                        },
+                        icon: Icon(Icons.skip_next)),
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           DraggableScrollableSheetExample(
             songs: songs,
             onReorder: _handleReorder,
+            pageManager: _pageManager,
           ),
         ],
       ),

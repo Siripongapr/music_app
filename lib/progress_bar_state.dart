@@ -126,6 +126,26 @@ class PageManager {
     _audioPlayer.pause();
   }
 
+  void next() async {
+    final int currentIndex = _audioPlayer.currentIndex ?? 0;
+    if (currentIndex < _songs.length - 1) {
+      buttonNotifier[currentIndex].value = ButtonState.paused;
+      await _audioPlayer.seekToNext();
+      buttonNotifier[_audioPlayer.currentIndex ?? 0].value =
+          ButtonState.playing;
+    }
+  }
+
+  void previous() async {
+    final int currentIndex = _audioPlayer.currentIndex ?? 0;
+    if (currentIndex > 0) {
+      buttonNotifier[currentIndex].value = ButtonState.paused;
+      await _audioPlayer.seekToPrevious();
+      buttonNotifier[_audioPlayer.currentIndex ?? 0].value =
+          ButtonState.playing;
+    }
+  }
+
   void seek(int index, Duration position) {
     _audioPlayer.seek(position);
   }

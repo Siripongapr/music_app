@@ -4,14 +4,16 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:music_app/progress_bar_state.dart';
 
 class DraggableScrollableSheetExample extends StatefulWidget {
-  const DraggableScrollableSheetExample({
-    Key? key,
-    required this.songs,
-    required this.onReorder,
-  }) : super(key: key);
+  const DraggableScrollableSheetExample(
+      {Key? key,
+      required this.songs,
+      required this.onReorder,
+      required this.pageManager})
+      : super(key: key);
 
   final List<Map<String, dynamic>> songs;
   final void Function(int oldIndex, int newIndex) onReorder;
+  final PageManager pageManager;
 
   @override
   _DraggableScrollableSheetExampleState createState() =>
@@ -36,7 +38,7 @@ class _DraggableScrollableSheetExampleState
   void initState() {
     super.initState();
     _songs = List.from(widget.songs); // Copy the initial songs list
-    _pageManager = PageManager(_songs);
+    _pageManager = widget.pageManager;
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
